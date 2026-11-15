@@ -18,12 +18,15 @@ import org.springframework.context.annotation.Profile;
 public class LocalSigningConfiguration {
     @Bean
     JWKSource<SecurityContext> jwkSource() throws Exception {
+        //RSA 개인키, 공개키 생성(JCA를 사용)
         var generator = KeyPairGenerator.getInstance("RSA");
-        generator.initialize(2048);
+        generator.initialize(2048); //키 길이 2048 비트
         var pair = generator.generateKeyPair();
-        var key = new RSAKey.Builder((RSAPublicKey) pair.getPublic())
-            .privateKey((RSAPrivateKey) pair.getPrivate())
+        var key = new RSAKey.Builder((RSAPublicKey) pair.getPublic()) // 공개키를 활용하여 JWK 생성시작
+            .privateKey((RSAPrivateKey) pair.getPrivate()) // 개인키도 내부에 함께 등록, 이를 통해 JWT 서명 생성 가능
+                //해당 키를 식별할 고유 아이디 설정
             .keyID(UUID.randomUUID().toString()).build();
-        return new ImmutableJWKSet<>(new JWKSet(key));
+        // 하나 이상의 JWK를 포함하는 집합을 반환
+        return new ImmutableJWKSet<>(new JWKSet(key)); //ImmutableJWKSet: 변경되지 않는 JWK 집합을 제공
     }
 }

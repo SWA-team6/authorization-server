@@ -20,11 +20,12 @@ public class LocalIdentityConfiguration {
 
     @Bean
     UserDetailsService users(PasswordEncoder encoder,
-            @Value("${cils.local.username}") String username,
+            @Value("${cils.local.username}") String username, //임시 local 변수 값 주입
             @Value("${cils.local.password}") String password) {
         if (username.isBlank() || password.isBlank()) {
             throw new IllegalArgumentException("Local account credentials must not be blank");
         }
+        // 인메모리 기반 사용자 정보 저장
         return new InMemoryUserDetailsManager(User.withUsername(username)
             .password(encoder.encode(password)).roles("USER").build());
     }
