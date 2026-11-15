@@ -74,3 +74,9 @@ Authorization Code + PKCE 교환, UserInfo, refresh rotation, 코드 재사용 �
 
 설정 근거: [Spring Security Authorization Server 시작 가이드](https://docs.spring.io/spring-security/reference/servlet/oauth2/authorization-server/getting-started.html).
 기본 구성으로 빠르게 프로토콜을 연결할 수 있지만 영속성과 CILS 업무 정책은 별도 구현이 필요합니다.
+
+## PostgreSQL 저장소 프로필
+
+계정·클라이언트·인가·동의를 PostgreSQL에 저장하는 postgres 프로필을 추가했습니다.
+개발 데이터 준비, 키 파일, 실행 방법과 검증 범위는 [PostgreSQL 안내](POSTGRES.md)를 참조하세요.
+위의 메모리 제한은 local 프로필 기준입니다. postgres도 Redis 세션/권한 연동/통합 로그아웃은 아직 미구현입니다.

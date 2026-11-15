@@ -19,6 +19,10 @@ repositories {
 }
 
 dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+	implementation 'org.springframework.boot:spring-boot-starter-flyway'
+	runtimeOnly 'org.flywaydb:flyway-database-postgresql'
+	runtimeOnly 'org.postgresql:postgresql'
 	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server-test'
@@ -30,3 +34,11 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
+
+tasks.register('preparePostgres', JavaExec) {
+    description = 'Explicitly create synthetic development fixtures and a persistent signing key (WSL/Linux).'
+    group = 'application'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.team6.cils.DevelopmentDatabaseSetup'
+}

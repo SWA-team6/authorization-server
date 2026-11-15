@@ -7,9 +7,15 @@ import org.springframework.context.annotation.Profile;
 @Configuration(proxyBeanMethods = false)
 public class RuntimeConfiguration {
     @Bean
-    @Profile("!local")
+    @Profile("!local & !postgres")
     Object requireConfiguredStorage() {
         throw new IllegalStateException(
-            "Only the local bootstrap is implemented. Enable the local profile explicitly.");
+            "Enable either local or postgres with its required configuration.");
+    }
+
+    @Bean
+    @Profile("local & postgres")
+    Object rejectConflictingProfiles() {
+        throw new IllegalStateException("local and postgres profiles must not be combined");
     }
 }

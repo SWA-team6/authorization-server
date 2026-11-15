@@ -12,7 +12,7 @@ import org.springframework.security.web.authentication.LoginUrlAuthenticationEnt
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 
 @Configuration(proxyBeanMethods = false)
-@Profile("local") //local profile이 활성화 된 경우만 해당 설정 적용, 비활성화의 경우 "./RuntimeConfiguration.java" 참조
+@Profile("local | postgres")
 public class SecurityConfiguration {
 
     // 로그아웃 엔드포인트 차단. (spring secirity에서 일반적으로 제공하는 /logout 엔드포인트 진입 전에 Authorization 서버에서 가로챈다.)
