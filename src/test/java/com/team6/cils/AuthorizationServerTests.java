@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.session.Session;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -16,18 +17,49 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     "spring.security.oauth2.authorizationserver.client.local.registration.client-secret={noop}synthetic-client-secret"
 })
 @ActiveProfiles("local")
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(print = org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint.NONE)
 class AuthorizationServerTests {
     @Autowired MockMvc mvc;
+    @Autowired org.springframework.session.data.redis.RedisSessionRepository sessions;
+    @Autowired org.springframework.data.redis.core.StringRedisTemplate redis;
+
+    private static final String NAMESPACE = "cils:test:" + java.util.UUID.randomUUID();
+
+    @org.springframework.test.context.DynamicPropertySource
+    static void isolatedSessions(org.springframework.test.context.DynamicPropertyRegistry properties) {
+        properties.add("spring.session.redis.namespace", () -> NAMESPACE);
+    }
+
+    @Test
+    void loginPersistsSecurityContextAndIdleExpiryInRedis() throws Exception {
+        var cookie = mvc.perform(formLogin().user("demo").password("synthetic-test-password"))
+            .andExpect(status().is3xxRedirection()).andReturn().getResponse().getCookie("SESSION");
+        org.junit.jupiter.api.Assertions.assertNotNull(cookie);
+        org.junit.jupiter.api.Assertions.assertTrue(cookie.isHttpOnly());
+        String id = new String(java.util.Base64.getDecoder().decode(cookie.getValue()),
+            java.nio.charset.StandardCharsets.UTF_8);
+        Session stored = sessions.findById(id);
+        org.junit.jupiter.api.Assertions.assertNotNull(stored);
+        org.springframework.security.core.context.SecurityContext context =
+            stored.getAttribute("SPRING_SECURITY_CONTEXT");
+        org.junit.jupiter.api.Assertions.assertEquals("demo", context.getAuthentication().getName());
+        org.junit.jupiter.api.Assertions.assertEquals(java.time.Duration.ofMinutes(30), stored.getMaxInactiveInterval());
+        Long ttl = redis.getExpire(NAMESPACE + ":sessions:" + id);
+        org.junit.jupiter.api.Assertions.assertTrue(ttl != null && ttl > 0 && ttl <= 1800);
+        mvc.perform(get("/").cookie(cookie))
+            .andExpect(org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated().withUsername("demo"));
+        mvc.perform(get("/").accept(org.springframework.http.MediaType.TEXT_HTML))
+            .andExpect(status().is3xxRedirection());
+    }
 
     @Test
     void codeExchangeUserInfoRefreshAndReplay() throws Exception {
         String verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
-        var session = (org.springframework.mock.web.MockHttpSession) mvc.perform(
+        var session = mvc.perform(
                 formLogin().user("demo").password("synthetic-test-password"))
-            .andExpect(status().is3xxRedirection()).andReturn().getRequest().getSession(false);
+            .andExpect(status().is3xxRedirection()).andReturn().getResponse().getCookie("SESSION");
         var response = mvc.perform(get("/oauth2/authorize")
-                .session(session)
+                .cookie(session)
                 .queryParam("client_id", "local-client")
                 .queryParam("response_type", "code")
                 .queryParam("redirect_uri", "http://127.0.0.1:8080/login/oauth2/code/cils")

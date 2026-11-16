@@ -25,8 +25,10 @@ public final class DevelopmentDatabaseSetup {
             Files.createFile(keyFile, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
             Files.writeString(keyFile, key.toJSONString());
         }
-        var dataSource = new DriverManagerDataSource(required("CILS_DB_URL"),
-            required("CILS_DB_USERNAME"), required("CILS_DB_PASSWORD"));
+        var dataSource = new DriverManagerDataSource(
+            System.getenv().getOrDefault("CILS_DB_URL", "jdbc:postgresql://localhost:5432/authorization?currentSchema=cils"),
+            System.getenv().getOrDefault("CILS_DB_USERNAME", "auth_user"),
+            required(System.getenv("CILS_DB_PASSWORD") == null ? "POSTGRES_PASSWORD" : "CILS_DB_PASSWORD"));
         var jdbc = new JdbcTemplate(dataSource);
         Flyway.configure().dataSource(dataSource).defaultSchema("cils").cleanDisabled(true).load().migrate();
         var clients = new JdbcRegisteredClientRepository(jdbc);

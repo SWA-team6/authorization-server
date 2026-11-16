@@ -5,7 +5,7 @@ Lombok을 사용하지 않습니다. 진입점은 `com.team6.cils.CilsApplicatio
 
 ## 실행
 
-Java 21 환경에서 이 디렉터리에서 실행합니다.
+Java 21 환경에서 이 디렉터리에서 실행합니다. Redis(localhost:6379)를 먼저 실행해야 합니다.
 
 ```bash
 export CILS_LOCAL_PASSWORD='choose-a-local-test-password'
@@ -31,7 +31,8 @@ issuer는 `http://localhost:9000`이며 요청에도 같은 호스트를 사용�
 - PKCE 필수, S256 사용; 클라이언트가 state, nonce와 verifier를 생성·보관·검증
 - 로그인/동의 화면은 Spring Security 기본 화면 사용
 
-8080의 콜백은 연결할 애플리케이션이 구현해야 합니다. 이 프로젝트에는 클라이언트 앱이 없습니다.
+8080의 콜백은 [FastAPI 클라이언트](../Client/README.md)가 구현합니다.
+클라이언트는 별도 Docker 구성으로 실행하며, 등록된 클라이언트 비밀의 원문이 필요합니다.
 등록 정보는 `application-local.properties`의 Spring Boot 클라이언트 설정에 있습니다.
 추가 클라이언트도 같은 설정 구조로 등록할 수 있지만, 런타임 관리 API는 아직 없습니다.
 
@@ -50,7 +51,7 @@ Discovery: <http://localhost:9000/.well-known/openid-configuration>
 계정은 identity, 키 생성은 keymanagement, grant/consent 저장소는 protocol,
 필터 조합은 security에 위치합니다. 클라이언트 저장소는 Boot의 설정 기반 자동 구성을 사용합니다.
 
-이 단계는 단일 프로세스 개발용입니다. 계정·클라이언트·동의·grant·세션은 메모리에 있으며,
+이 단계는 단일 프로세스 개발용입니다. 계정·클라이언트·동의·grant는 메모리에 있으며,
 재시작하면 상태와 서명 키가 초기화됩니다. 운영 저장소나 키 관리 방식의 결정이 아닙니다.
 개발 설정의 access token 수명은 5분, refresh token은 1시간, 세션은 30분입니다.
 refresh token rotation은 활성화했지만 CILS 목표의 영속적 재사용 탐지/가족 전체 폐기,
@@ -79,4 +80,4 @@ Authorization Code + PKCE 교환, UserInfo, refresh rotation, 코드 재사용 �
 
 계정·클라이언트·인가·동의를 PostgreSQL에 저장하는 postgres 프로필을 추가했습니다.
 개발 데이터 준비, 키 파일, 실행 방법과 검증 범위는 [PostgreSQL 안내](POSTGRES.md)를 참조하세요.
-위의 메모리 제한은 local 프로필 기준입니다. postgres도 Redis 세션/권한 연동/통합 로그아웃은 아직 미구현입니다.
+위의 메모리 제한은 local 프로필 기준입니다. 두 프로필의 HTTP 로그인 세션은 Redis에 저장합니다. 권한 연동/통합 로그아웃은 아직 미구현입니다.

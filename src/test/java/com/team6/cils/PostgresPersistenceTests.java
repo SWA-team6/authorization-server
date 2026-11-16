@@ -38,8 +38,8 @@ class PostgresPersistenceTests {
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry properties) throws Exception {
         String url = System.getenv("CILS_TEST_DB_URL");
-        String user = System.getenv("CILS_DB_USERNAME");
-        String password = System.getenv("CILS_DB_PASSWORD");
+        String user = System.getenv().getOrDefault("CILS_DB_USERNAME", "auth_user");
+        String password = System.getenv().getOrDefault("CILS_DB_PASSWORD", System.getenv("POSTGRES_PASSWORD"));
         String schema = "cils_test_" + UUID.randomUUID().toString().replace("-", "");
         try (var connection = DriverManager.getConnection(url, user, password);
              var statement = connection.createStatement()) {
@@ -53,6 +53,7 @@ class PostgresPersistenceTests {
         properties.add("spring.datasource.username", () -> user);
         properties.add("spring.datasource.password", () -> password);
         properties.add("spring.flyway.default-schema", () -> schema);
+        properties.add("spring.session.redis.namespace", () -> schema + ":session");
         properties.add("cils.signing.jwk-file", path::toString);
         properties.add("spring.security.oauth2.authorizationserver.issuer", () -> "http://localhost:9000");
         System.out.println("Retained synthetic test schema: " + schema);
@@ -89,10 +90,11 @@ class PostgresPersistenceTests {
 
     @Test
     void persistedCodeExchangeAndRefresh() throws Exception {
-        var session = (org.springframework.mock.web.MockHttpSession) mvc.perform(
+        var session = mvc.perform(
             formLogin().user("demo").password("synthetic-test-password"))
-            .andReturn().getRequest().getSession(false);
-        var response = mvc.perform(get("/oauth2/authorize").session(session)
+            .andReturn().getResponse().getCookie("SESSION");
+        assertNotNull(session);
+        var response = mvc.perform(get("/oauth2/authorize").cookie(session)
             .queryParam("client_id", "local-client").queryParam("response_type", "code")
             .queryParam("redirect_uri", "http://127.0.0.1:8080/login/oauth2/code/cils")
             .queryParam("scope", "openid").queryParam("state", "synthetic-state").queryParam("nonce", "synthetic-nonce")
